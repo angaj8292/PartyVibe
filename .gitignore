@@ -24,3 +24,6 @@ yarn-error.log*
 
 # LiveKit temp files
 livekit-server.exe
+
+.vercel
+.env*

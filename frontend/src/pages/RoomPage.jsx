@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import wsService from '../services/websocket';
 import livekitService from '../services/livekit';
+import webrtcVoiceService from '../services/webrtcVoice';
 import { useAuth } from '../context/AuthContext';
 import SeatStage from '../components/SeatStage';
 import RoomChat from '../components/RoomChat';
@@ -10,6 +11,7 @@ import RoomMusicPlayer from '../components/RoomMusicPlayer';
 import GiftModal from '../components/GiftModal';
 import GiftAnimationOverlay from '../components/GiftAnimationOverlay';
 import UserProfileModal from '../components/UserProfileModal';
+import DirectChatModal from '../components/DirectChatModal';
 import ReportModal from '../components/ReportModal';
 import {
   ArrowLeft,
@@ -44,7 +46,9 @@ const RoomPage = ({ onOpenTopUp }) => {
   const [giftTargetUser, setGiftTargetUser] = useState(null);
   const [activeGiftEvent, setActiveGiftEvent] = useState(null);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [directChatUser, setDirectChatUser] = useState(null);
   const [reportTarget, setReportTarget] = useState(null);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -70,7 +74,7 @@ const RoomPage = ({ onOpenTopUp }) => {
           stompSub = wsService.subscribe(`/topic/room.${roomId}`, handleSocketEvent);
         });
 
-        // Initialize LiveKit voice connection
+        // Initialize WebRTC mesh voice connection
         await connectVoice(roomId);
       } catch (err) {
         console.error('Failed to join room:', err);
@@ -85,28 +89,45 @@ const RoomPage = ({ onOpenTopUp }) => {
     return () => {
       // Cleanup on unmount / exit room
       if (stompSub) stompSub.unsubscribe();
+      webrtcVoiceService.leaveRoom();
       livekitService.disconnect();
       api.post(`/rooms/${roomId}/leave`).catch(() => {});
     };
   }, [roomId]);
 
-  // Connect or Re-connect Voice with LiveKit
-  const connectVoice = async (rId) => {
+  // Connect Voice with WebRTC Mesh (and LiveKit if available)
+  const connectVoice = async (rId, userSeated = false) => {
     try {
-      const res = await api.get(`/rooms/${rId}/livekit-token`);
-      const { token, livekitUrl, canPublish } = res.data;
-
-      await livekitService.connect({
-        url: livekitUrl,
-        token,
-        canPublish,
+      webrtcVoiceService.joinRoom({
+        roomId: rId,
+        currentUser,
+        isSeated: userSeated,
         onActiveSpeakers: (speakers) => {
           setActiveSpeakers(speakers);
         },
         onStatusChange: (status) => {
           setLivekitConnected(status === 'connected');
         },
+        onAudioBlocked: (blocked) => {
+          setAudioBlocked(blocked);
+        },
       });
+
+      // Optional LiveKit cloud connect in background if configured
+      try {
+        const res = await api.get(`/rooms/${rId}/livekit-token`);
+        const { token, livekitUrl, canPublish } = res.data;
+        if (livekitUrl && !livekitUrl.includes('demo.livekit.cloud')) {
+          livekitService.connect({
+            url: livekitUrl,
+            token,
+            canPublish,
+            onActiveSpeakers: (speakers) => setActiveSpeakers(speakers),
+          }).catch(() => {});
+        }
+      } catch (e) {
+        // Handled by WebRTC Mesh
+      }
     } catch (err) {
       console.warn('Voice connection warning:', err.message);
     }
@@ -177,6 +198,11 @@ const RoomPage = ({ onOpenTopUp }) => {
         break;
       }
 
+      case 'VOICE_SIGNAL': {
+        webrtcVoiceService.handleSignal(event.payload);
+        break;
+      }
+
       default:
         break;
     }
@@ -190,8 +216,10 @@ const RoomPage = ({ onOpenTopUp }) => {
         action: 'TAKE',
       });
       setSeats(res.data);
-      // Reconnect LiveKit with publish permission
-      await connectVoice(roomId);
+      // Start microphone for speech
+      await webrtcVoiceService.startMicrophone();
+      setIsMicMuted(false);
+      connectVoice(roomId, true);
     } catch (err) {
       alert(err.response?.data?.message || 'Could not take seat');
     }
@@ -207,7 +235,9 @@ const RoomPage = ({ onOpenTopUp }) => {
         action: 'LEAVE',
       });
       setSeats(res.data);
-      await connectVoice(roomId);
+      webrtcVoiceService.stopMicrophone();
+      setIsMicMuted(true);
+      connectVoice(roomId, false);
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to leave seat');
     }
@@ -227,8 +257,10 @@ const RoomPage = ({ onOpenTopUp }) => {
 
   // Toggle Mic (for seated users)
   const handleToggleMic = async () => {
-    const success = livekitService.toggleMute();
-    setIsMicMuted(!isMicMuted);
+    const nextMuted = !isMicMuted;
+    webrtcVoiceService.setMicrophoneEnabled(!nextMuted);
+    livekitService.toggleMute();
+    setIsMicMuted(nextMuted);
   };
 
   // Send Chat Message
@@ -283,12 +315,31 @@ const RoomPage = ({ onOpenTopUp }) => {
   }
 
   return (
-    <div className="relative min-h-screen max-w-md mx-auto flex flex-col bg-vibe-bg pb-6 select-none overflow-x-hidden">
+    <div
+      onClick={() => {
+        if (audioBlocked) webrtcVoiceService.unlockAudio();
+      }}
+      className="relative min-h-screen max-w-md mx-auto flex flex-col bg-vibe-bg pb-6 select-none overflow-x-hidden"
+    >
       {/* Gift Full-Screen Animation Overlay */}
       <GiftAnimationOverlay
         activeGiftEvent={activeGiftEvent}
         onAnimationEnd={() => setActiveGiftEvent(null)}
       />
+
+      {/* Audio Autoplay Unblock Banner */}
+      {audioBlocked && (
+        <div
+          onClick={(e) => {
+            e.stopPropagation();
+            webrtcVoiceService.unlockAudio();
+          }}
+          className="bg-gradient-to-r from-amber-500 via-pink-500 to-purple-600 text-white text-xs font-black py-2.5 px-4 text-center cursor-pointer shadow-lg animate-pulse flex items-center justify-center gap-2 sticky top-0 z-40"
+        >
+          <Volume2 className="w-4 h-4 animate-bounce shrink-0" />
+          <span>Tap here to Enable Audio & Hear Everyone</span>
+        </div>
+      )}
 
       {/* Top Header */}
       <div className="glass-nav px-4 py-3 sticky top-0 z-30 flex items-center justify-between">
@@ -434,7 +485,18 @@ const RoomPage = ({ onOpenTopUp }) => {
             setGiftTargetUser(u);
             setIsGiftModalOpen(true);
           }}
+          onOpenDirectChat={(u) => setDirectChatUser(u)}
           onOpenReport={(t) => setReportTarget(t)}
+        />
+      )}
+
+      {/* Direct Chat Modal */}
+      {directChatUser && (
+        <DirectChatModal
+          isOpen={!!directChatUser}
+          targetUser={directChatUser}
+          onClose={() => setDirectChatUser(null)}
+          currentUser={currentUser}
         />
       )}
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { X, UserPlus, UserCheck, Users, ShieldAlert, Ban, Gift, Sparkles } from 'lucide-react';
+import { X, UserPlus, UserCheck, Users, ShieldAlert, Ban, Gift, Sparkles, MessageCircle } from 'lucide-react';
 
 const UserProfileModal = ({
   user,
@@ -10,6 +10,7 @@ const UserProfileModal = ({
   onOpenGiftForUser,
   onOpenReport,
   onFollowChanged,
+  onOpenDirectChat,
 }) => {
   const [profile, setProfile] = useState(null);
   const [giftWall, setGiftWall] = useState([]);
@@ -141,11 +142,11 @@ const UserProfileModal = ({
 
           {/* Primary Action Buttons */}
           {!isMe && (
-            <div className="flex items-center gap-2 w-full">
+            <div className="flex items-center gap-1.5 w-full">
               <button
                 onClick={handleToggleFollow}
                 disabled={followLoading}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all ${
+                className={`flex-1 py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all ${
                   profile?.isFollowing
                     ? 'bg-white/10 text-gray-200 border border-white/10 hover:bg-white/15'
                     : 'bg-gradient-to-r from-vibe-accent to-purple-600 text-white shadow-md shadow-pink-500/20'
@@ -165,11 +166,21 @@ const UserProfileModal = ({
               <button
                 onClick={() => {
                   onClose();
+                  if (onOpenDirectChat) onOpenDirectChat(user);
+                }}
+                className="flex-1 py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1 bg-white/10 hover:bg-white/15 text-white border border-white/10 shadow-md transition-all active:scale-95"
+              >
+                <MessageCircle className="w-3.5 h-3.5 text-vibe-cyan" /> Message
+              </button>
+
+              <button
+                onClick={() => {
+                  onClose();
                   if (onOpenGiftForUser) onOpenGiftForUser(user);
                 }}
-                className="flex-1 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-md"
+                className="flex-1 py-2 px-1 rounded-xl text-xs font-bold flex items-center justify-center gap-1 bg-gradient-to-r from-amber-500 to-yellow-500 text-black shadow-md transition-all active:scale-95"
               >
-                <Gift className="w-3.5 h-3.5" /> Send Gift
+                <Gift className="w-3.5 h-3.5" /> Gift
               </button>
             </div>
           )}

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import api from '../services/api';
 import RoomCard from '../components/RoomCard';
 import UserProfileModal from '../components/UserProfileModal';
+import DirectChatModal from '../components/DirectChatModal';
 import { useAuth } from '../context/AuthContext';
 import { Users, UserPlus, UserCheck, Search, Radio, Sparkles } from 'lucide-react';
 
@@ -12,6 +13,7 @@ const FollowPage = () => {
   const [friends, setFriends] = useState([]);
   const [recommended, setRecommended] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [directChatUser, setDirectChatUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const fetchData = async () => {
@@ -253,7 +255,18 @@ const FollowPage = () => {
           isOpen={!!selectedUser}
           onClose={() => setSelectedUser(null)}
           currentUser={currentUser}
+          onOpenDirectChat={(u) => setDirectChatUser(u)}
           onFollowChanged={fetchData}
+        />
+      )}
+
+      {/* Direct Chat Modal */}
+      {directChatUser && (
+        <DirectChatModal
+          isOpen={!!directChatUser}
+          targetUser={directChatUser}
+          onClose={() => setDirectChatUser(null)}
+          currentUser={currentUser}
         />
       )}
     </div>

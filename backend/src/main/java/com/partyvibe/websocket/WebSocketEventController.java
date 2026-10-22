@@ -3,6 +3,7 @@ package com.partyvibe.websocket;
 import com.partyvibe.config.UserPrincipal;
 import com.partyvibe.dto.SeatActionRequest;
 import com.partyvibe.dto.SendChatRequest;
+import com.partyvibe.dto.VoiceSignalRequest;
 import com.partyvibe.service.ChatService;
 import com.partyvibe.service.SeatService;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +23,7 @@ public class WebSocketEventController {
 
     private final ChatService chatService;
     private final SeatService seatService;
+    private final RoomEventPublisher roomEventPublisher;
 
     @MessageMapping("/room/{roomId}/chat")
     public void handleChatMessage(
@@ -47,6 +49,22 @@ public class WebSocketEventController {
             seatService.performSeatAction(userPrincipal.getId(), roomId, req);
         } else {
             log.warn("Unauthenticated STOMP seat action rejected");
+        }
+    }
+
+    @MessageMapping("/room/{roomId}/voice-signal")
+    public void handleVoiceSignal(
+            @DestinationVariable Long roomId,
+            @Payload VoiceSignalRequest req,
+            Principal principal) {
+        if (principal instanceof Authentication auth && auth.getPrincipal() instanceof UserPrincipal userPrincipal) {
+            req.setSenderId(userPrincipal.getId());
+            req.setSenderUsername(userPrincipal.getUsername());
+            log.debug("STOMP voice signal in room {} from {}: action={}, target={}",
+                    roomId, userPrincipal.getUsername(), req.getAction(), req.getTargetUserId());
+            roomEventPublisher.broadcastToRoom(roomId, "VOICE_SIGNAL", req);
+        } else {
+            log.warn("Unauthenticated STOMP voice signal rejected");
         }
     }
 }
