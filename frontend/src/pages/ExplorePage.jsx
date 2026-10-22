@@ -20,9 +20,10 @@ const ExplorePage = ({ onOpenCreate }) => {
       const res = await api.get('/rooms', {
         params: { category: categoryParam, size: 20 },
       });
-      setRooms(res.data);
+      setRooms(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('Failed to fetch rooms:', err);
+      setRooms([]);
     } finally {
       setLoading(false);
     }
@@ -32,8 +33,9 @@ const ExplorePage = ({ onOpenCreate }) => {
     fetchRooms();
   }, [selectedCategory, activeTab]);
 
-  const filteredRooms = rooms.filter((r) =>
-    searchQuery ? r.title.toLowerCase().includes(searchQuery.toLowerCase()) : true
+  const safeRooms = Array.isArray(rooms) ? rooms : [];
+  const filteredRooms = safeRooms.filter((r) =>
+    searchQuery && r?.title ? r.title.toLowerCase().includes(searchQuery.toLowerCase()) : true
   );
 
   return (

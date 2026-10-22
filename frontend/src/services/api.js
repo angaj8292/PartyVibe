@@ -1,6 +1,14 @@
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
+const isLocalhost =
+  typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' ||
+    window.location.hostname === '127.0.0.1' ||
+    window.location.hostname === '');
+
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL ||
+  (isLocalhost ? '/api' : 'https://partyvibe-backend.onrender.com/api');
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -28,7 +36,6 @@ api.interceptors.response.use(
       if (currentPath !== '/login' && currentPath !== '/register') {
         localStorage.removeItem('partyvibe_token');
         localStorage.removeItem('partyvibe_user');
-        window.location.href = '/login';
       }
     }
     return Promise.reject(error);
