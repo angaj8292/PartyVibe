@@ -128,7 +128,7 @@ const FollowPage = () => {
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-3">
-              {followingRooms.map((room) => (
+              {(Array.isArray(followingRooms) ? followingRooms : []).map((room) => (
                 <RoomCard key={room.id} room={room} />
               ))}
             </div>
@@ -139,7 +139,7 @@ const FollowPage = () => {
       {/* Tab 2: Mutual Friends */}
       {activeTab === 'friends' && (
         <div className="space-y-2">
-          {friends.length === 0 ? (
+          {(!Array.isArray(friends) || friends.length === 0) ? (
             <div className="p-8 text-center bg-vibe-card/50 rounded-3xl border border-white/5">
               <Sparkles className="w-10 h-10 text-emerald-400 mx-auto mb-2 opacity-50" />
               <p className="text-xs text-gray-300 font-bold mb-1">No mutual friends yet</p>
@@ -148,7 +148,7 @@ const FollowPage = () => {
               </p>
             </div>
           ) : (
-            friends.map((friend) => (
+            (Array.isArray(friends) ? friends : []).map((friend) => (
               <div
                 key={friend.id}
                 onClick={() => setSelectedUser(friend)}
@@ -189,12 +189,12 @@ const FollowPage = () => {
       {/* Tab 3: Recommended Users */}
       {activeTab === 'recommended' && (
         <div className="space-y-2">
-          {recommended.length === 0 ? (
+          {(!Array.isArray(recommended) || recommended.length === 0) ? (
             <div className="p-8 text-center text-xs text-gray-500">
               No new recommendations available.
             </div>
           ) : (
-            recommended.map((u) => (
+            (Array.isArray(recommended) ? recommended : []).map((u) => (
               <div
                 key={u.id}
                 onClick={() => setSelectedUser(u)}
