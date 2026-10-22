@@ -1,0 +1,16 @@
+spring:
+  datasource:
+    url: ${JDBC_DATABASE_URL:${SPRING_DATASOURCE_URL:jdbc:postgresql://${PGHOST:localhost}:${PGPORT:5432}/${PGDATABASE:partyvibedb}}}
+    username: ${PGUSER:${DATABASE_USERNAME:postgres}}
+    password: ${PGPASSWORD:${DATABASE_PASSWORD:postgres}}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+
+logging:
+  level:
+    com.partyvibe: INFO
+    org.springframework.web: WARN
