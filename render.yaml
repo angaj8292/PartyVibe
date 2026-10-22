@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: partyvibe-backend
+    env: docker
+    dockerfilePath: Dockerfile
+    plan: free
+    region: oregon
+    healthCheckPath: /v3/api-docs
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: DATABASE_URL
+        fromDatabase:
+          name: partyvibedb
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+      - key: LIVEKIT_URL
+        value: wss://partyvibe-demo.livekit.cloud
+      - key: LIVEKIT_API_KEY
+        value: devkey
+      - key: LIVEKIT_API_SECRET
+        value: secret
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://*.vercel.app,http://localhost:5173
+
+databases:
+  - name: partyvibedb
+    plan: free
+    region: oregon
+    databaseName: partyvibedb
+    user: postgres
