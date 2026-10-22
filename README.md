@@ -1,6 +1,9 @@
 # PartyVibe 🎤
 > A Complete, Modern Social Voice-Party Web Application.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/angaj8292/PartyVibe)
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2Fangaj8292%2FPartyVibe&root-directory=frontend)
+
 PartyVibe allows users to create and join live public voice party rooms with up to 8 seats on stage. Users on seats converse via live audio (LiveKit), listeners participate via real-time STOMP chat, send animated virtual gifts powered by an in-app coins wallet, level up their VIP status, follow each other into rooms, and build their social Gift Wall.
 
 ---
